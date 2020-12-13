@@ -4,15 +4,15 @@
 helper () {
 	if [ -x /home/shota/.cargo/bin/bat ]
 	then
-		/home/shota/.cargo/bin/bat /opt/myqemu/README.md
+		/home/shota/.cargo/bin/bat /opt/shotaqemu/README.md
 	else
-		/bin/cat /opt/myqemu/README.md
+		/bin/cat /opt/shotaqemu/README.md
 	fi
 }
 
 ### source vars and func ###
 #source vars
-source /opt/myqemu/func
+source /opt/shotaqemu/func
 
 ### mkdir tmp ###
 if [ ! -d $WD/tmp ]
