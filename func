@@ -1,0 +1,209 @@
+#!/bin/bash
+
+### SET WORKING DIR ###
+
+WD=$(pwd)
+
+### rgqemu ####
+
+rgqemu () {
+	ps aux |grep qemu
+
+}
+
+### vdi list ###
+
+doglist () {
+	lxc exec sheepdog1 -- dog vdi list
+
+}
+
+### CONFIGURE VM INSTANCE ###
+
+configvminstance () {
+	echo "#!/bin/bash" > $WD/tmp/vars.txt
+	read -p "(Default 0/off)vnc on/off || 1/0 : " VNCNN
+	if [ -z $VNCNN ] || [ $VNCNN == "off" ] || [ $VNCNN == "0" ] || [ $VNCNN == "OFF" ]
+	then
+		echo "VNCNN=0" >> $WD/tmp/vars.txt
+	elif [ $VNCNN == "on" ] || [ $VNCNN == "ON" ] || [ $VNCNN == "1" ]
+	then
+		echo "VNCNN=1" >> $WD/tmp/vars.txt
+	else
+		echo "VNCNN=0" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default en-us)Enter input lang: " LNGIN
+	if [ -z $LNGIN ] 
+	then
+		echo "LNGIN=en-us" >> $WD/tmp/vars.txt
+	else
+		echo "LNGIN=$LNGIN" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default y/yes)Enable vga std? y/n : " VGASTD
+	if [ -z $VGASTD ] || [ $VGASTD == "y" ] || [ $VGASTD == "yes" ] || [ $VGASTD == "Y" ] || [ $VGASTD == "YES" ]
+	then
+		echo "VGASTD=1" >> $WD/tmp/vars.txt
+	else
+		echo "VGASTD=0" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default 1)Enter cpu cores: " SMPCORES
+	if [ -z $SMPCORES ] 
+	then
+		echo "SMPCORES=1" >> $WD/tmp/vars.txt
+	else
+		echo "SMPCORES=$SMPCORES" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default c)Enter first boot device a/c/d/n - flop/harddr/cdrom/net: " BOOTFROM
+	if [ -z $BOOTFROM ]
+	then
+		echo "BOOTFROM=c" >> $WD/tmp/vars.txt
+	else
+		echo "BOOTFROM=$BOOTFROM" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default livecd.iso, enter n for not useing)Enter image file path: " CDROM
+	if [ -z $CDROM ]
+	then
+		echo "CDROM=livecd.iso" >> $WD/tmp/vars.txt
+	else
+		echo "CDROM=$CDROM" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default 1024)Enter RAM in MB !only numbers!: " MEMRAM
+	if [ -z $MEMRAM ]
+	then
+		echo "MEMRAM=1024" >> $WD/tmp/vars.txt
+	else
+		echo "MEMRAM=$MEMRAM" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default 1/on)KVMONOFF on/off || 1/0 : " KVMONOFF
+	if [ -z $KVMONOFF ] || [ $KVMONOFF == "on" ] || [ $KVMONOFF == "1" ] || [ $KVMONOFF == "ON" ]
+	then
+		echo "KVMONOFF=1" >> $WD/tmp/vars.txt
+	else
+		echo "KVMONOFF=0" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default 1/on)CPUHOST: " CPUHOST
+	if [ -z $CPUHOST ] || [ $CPUHOST == "on" ] || [ $CPUHOST == "1" ] || [ $CPUHOST == "ON" ]
+	then
+		echo "CPUHOST=1" >> $WD/tmp/vars.txt
+	else
+		echo "CPUHOST=0" >> $WD/tmp/vars.txt
+	fi
+	read -p "(Default test1)Enter disk drive name on sheepdog: " DRIVEDISK
+	if [ -z $DRIVEDISK ]
+	then
+		echo "DRIVEDISK=test1" >> $WD/tmp/vars.txt
+	else
+		echo "DRIVEDISK=$DRIVEDISK" >> $WD/tmp/vars.txt
+	fi
+	read -p "Enter vm instance name: " VMNAME
+	if [ -z $VMNAME ]
+	then
+		local n=$( ps aux | grep qemu -c )
+		local nn=$( expr $n + 1 )
+		echo "VMNAME=test-qemu-instance-$nn" >> $WD/tmp/vars.txt
+	else
+		echo "VMNAME=$VMNAME" >> $WD/tmp/vars.txt
+	fi
+	TAP=$( ip a |grep -c tap )
+	TAPNET=$( expr $TAP + 1 )
+	echo "TAPNET=tap$TAPNET" >> $WD/tmp/vars.txt
+
+	### print all configs ###
+	echo "Check all configurations and if all ok then write it in the vars configuration file: "
+	/bin/cat $WD/tmp/vars.txt
+	read -p "Defaul n/no: " ANSW
+	if [ -z $ANSW ] || [ $ANSW == "n" ] || [ $ANSW == "no" ]
+	then
+		echo "Exit without saving"
+	elif [ $ANSW == "y" ] || [ $ANSW == "yes" ]
+	then
+		echo "Write and exit"
+		/bin/cp $WD/tmp/vars.txt $WD/vars
+	else
+		echo "Exit without saving"
+	fi
+	
+}
+
+startinstancecommandfunction () {
+	#import configs
+	source $WD/vars
+	echo "Starting..."
+	#parse vnc
+	if [ $VNCNN == "0" ]
+	then
+		local VNC=""
+	else
+		local V=$( netstat -tunelp |grep 590[0-9]* -c )
+		V=$( expr $V / 2 )
+		let V++
+		VNC="-vnc :"$V
+	fi
+	#parse vga
+	local VGA="-vga std"
+	if [ $VGASTD == 0 ]
+	then
+		VGA=""
+	else
+		VGA="-vga std"
+	fi
+	#parse cdrom iso
+	if [ $CDROM == "n" ]
+	then
+		local CD=""
+	else
+		CD="-cdrom "$CDROM
+	fi
+	#parse kvm
+	local KVM="-enable-kvm"
+	if [ $KVMONOFF == "1"  ]
+	then
+		KVM="-enable-kvm"
+	else
+		KVM=""
+	fi
+	#parse cpu host
+	local CH="-cpu host"
+	if [ $CPUHOST == "1"  ]
+	then
+		CH="-cpu host"
+	else
+		CH=""
+	fi
+	#parse vdi name
+	local VDI="-drive file=sheepdog://sheepdog1:7000/"
+	#parse network
+	local NETW="-net nic,model=virtio -net tap,ifname="
+	
+	/usr/bin/qemu-system-x86_64 $VNC -k $LNGIN $VGA -smp "cores=$SMPCORES" -boot $BOOTFROM $CD -m $MEMRAM $KVM $CH $VDI$DRIVEDISK -name $VMNAME $NETW$TAPNET -daemonize
+
+}
+
+### Start Configured Instance ###
+
+startinstance () {
+	/bin/cat $WD/vars
+	local ANSW="n"
+	read -p "Start this instance? y/n: " ANSW
+	if [ -z $ANSW ] || [ $ANSW == "no" ] || [ $ANSW == "n"]
+	then
+		echo "Not started"
+	elif [ $ANSW == "y" ] || [ $ANSW == "yes" ]
+	then
+		startinstancecommandfunction
+	else
+		echo "Not started"
+	fi
+}
+
+dogvdidelete () {
+	lxc exec sheepdog1 -- dog vdi delete $1
+}
+
+dogcreate () {
+	lxc exec sheepdog1 -- dog vdi create $1 $2
+}
+
+dogresize () {
+	lxc exec sheepdog1 -- dog vdi resize $1 $2
+}
