@@ -9,23 +9,23 @@ Use it with your own risk.
 
 HELP shotaqemu
 
-1) help       3) dogcreate  5) rgqemu     7) startqemu  9) Quit
-2) doglist    4) dogedit    6) killqemu   8) configure
+1) help 2) doglist 3) dogcreate 4) dogedit 5) rgqemu 6) killqemu 7) startqemu 8) configure 9) Quit
 
-1) Print This Help
 
-2) Print Existing sheepdog VDI list
+1. Print This Help
 
-3) Create sheepdog VDI disk
+2. Print Existing sheepdog VDI list
 
-4) Resize or Delete sheepdog VDI disk
+3. Create sheepdog VDI disk
 
-5) Search qemu process in ps
+4. Resize or Delete sheepdog VDI disk
 
-6) Kill qemu process ID
+5. Search qemu process in ps
 
-7) Start qemu instance configured by the configuration script
+6. Kill qemu process ID
 
-8) qemu vm instance configurations script
+7. Start qemu instance configured by the configuration script
 
-9) Quit myqemu program
+8. qemu vm instance configurations script
+
+9. Quit myqemu program
